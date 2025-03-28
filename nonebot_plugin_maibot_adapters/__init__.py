@@ -26,7 +26,7 @@ __plugin_meta__ = PluginMetadata(
 
 )
 config = get_plugin_config(Config)
-require("maim_message")
+
 
 
 msg_in = on_message(priority=5)

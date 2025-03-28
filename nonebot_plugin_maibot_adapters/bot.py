@@ -13,7 +13,7 @@ from maim_message import UserInfo, GroupInfo, Seg ,BaseMessageInfo,MessageBase,F
 from .config import Config
 from .util import local_file_to_base64
 
-from nonebot.drivers import httpx
+import httpx
 import time
 
 
