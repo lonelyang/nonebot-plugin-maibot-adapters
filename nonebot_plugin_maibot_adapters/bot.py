@@ -57,6 +57,10 @@ class ChatBot:
 
         # 处理群聊消息
         else:
+            #白名单处理逻辑
+            if len(config.allow_group_list) != 0 :
+                if event.group_id not in config.group_list:
+                    return
 
             user_info = UserInfo(
                 user_id=event.user_id,
@@ -93,6 +97,13 @@ class ChatBot:
             if not event.is_tome():
                 return
 
+            #白名单处理逻辑
+            if len(config.allow_group_list) != 0 :
+                if event.group_id not in config.group_list:
+                    return
+
+
+
             raw_message = f"[戳了戳]{config.Nickname}"  # 默认类型
             if info := event.model_extra["raw_info"]:
                 poke_type = info[2].get("txt", "戳了戳")  # 戳戳类型，例如“拍一拍”、“揉一揉”、“捏一捏”
@@ -115,7 +126,7 @@ class ChatBot:
 
             message_info = BaseMessageInfo(
                     platform = 'qq',
-                    message_id = event.message_id,
+                    message_id = None,
                     time = int(time.time()),
                     group_info= group_info,
                     user_info = user_info,
@@ -154,6 +165,12 @@ class ChatBot:
         """修复后的图片消息处理器"""
         self.bot = bot
         
+        #白名单处理逻辑
+        if len(config.allow_group_list) != 0 :
+            if event.group_id not in config.group_list:
+                return
+
+
         # 公共信息处理（移到循环外）
         try:
             if isinstance(event, PrivateMessageEvent):
@@ -212,6 +229,12 @@ class ChatBot:
 
     async def handle_forward_message(self, event: MessageEvent, bot: Bot) -> None:
         """专用于处理合并转发的消息处理器"""
+
+        #白名单处理逻辑
+        if len(config.allow_group_list) != 0 :
+            if event.group_id not in config.group_list:
+                return
+
 
         # 获取合并转发消息的详细信息
         forward_info = await bot.get_forward_msg(message_id=event.message_id)
@@ -324,6 +347,7 @@ class ChatBot:
             response_data = response.json()
             logger.success(f"收到服务端响应: {response_data}")
             logger.debug(f"响应内容: {response_data}")
+        
 
 # 创建全局ChatBot实例
 chat_bot = ChatBot()
