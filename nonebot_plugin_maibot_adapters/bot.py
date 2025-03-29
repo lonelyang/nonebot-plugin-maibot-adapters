@@ -320,11 +320,10 @@ class ChatBot:
         if response.status_code != 200:
             logger.error(f"FastAPI返回错误状态码: {response.status_code}")
             logger.debug(f"响应内容: {response.text}")
-        
-        response_data = response.json()
-        logger.success(f"收到服务端响应: {response_data}")
-        logger.debug(f"响应内容: {response_data}")
-        
+        else:
+            response_data = response.json()
+            logger.success(f"收到服务端响应: {response_data}")
+            logger.debug(f"响应内容: {response_data}")
 
 # 创建全局ChatBot实例
 chat_bot = ChatBot()
