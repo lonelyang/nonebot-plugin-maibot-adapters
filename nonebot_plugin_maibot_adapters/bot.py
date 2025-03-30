@@ -38,6 +38,8 @@ class ChatBot:
     async def handle_message(self, event: MessageEvent, bot: Bot) -> None:
         """处理收到的消息"""
 
+
+
         self.bot = bot  # 更新 bot 实例
         if isinstance(event, PrivateMessageEvent):
             try:
@@ -59,7 +61,7 @@ class ChatBot:
         else:
             #白名单处理逻辑
             if len(config.allow_group_list) != 0 :
-                if event.group_id not in config.group_list:
+                if event.group_id not in config.allow_group_list:
                     return
 
             user_info = UserInfo(
@@ -69,21 +71,43 @@ class ChatBot:
                 platform=config.platfrom,
             )
             
-            group_info = GroupInfo(group_id=event.group_id, group_name=await bot.get_group_info(group_id = event.group_id,no_cache=True), platform=config.platfrom)
+            group_info = GroupInfo(group_id=event.group_id, 
+                                   group_name=(await bot.get_group_info(group_id = event.group_id,no_cache=True))["group_name"], 
+                                   platform=config.platfrom)
 
 
         message_info = BaseMessageInfo(
-                platform = 'qq',
+                platform = config.platfrom,
                 message_id = event.message_id,
                 time = int(time.time()),
                 group_info = group_info,
                 user_info = user_info,
         )
-        logger.info (event.get_message())
-        message_seg = Seg(
-                type = 'text',
-                data = event.get_plaintext(),  
-        )
+        
+        # 这里是暂不支持的回复消息我想想怎么改
+        # if event.reply:
+        #     reply_id = None
+        #     for segment in event.reply.message:
+        #         if segment.type == "reply":
+        #             reply_id = segment.data.get("id")
+        #     message_seg = Seg(
+        #         type = 'seglist',
+        #         data = [
+        #             Seg(type='reply' , data = reply_id),
+        #             Seg(type='text' , data = event.get_plaintext())
+        #         ]
+        #     )      
+        # else: 
+        #     message_seg = Seg(
+        #             type = 'text',
+        #             data = event.get_plaintext(),  
+        #     )
+
+        message_seg = Seg(  
+                    type = 'text',
+                    data = event.get_plaintext(),  
+            )
+
 
         message_base = MessageBase(message_info,message_seg,raw_message=event.get_plaintext())
 
@@ -99,7 +123,7 @@ class ChatBot:
 
             #白名单处理逻辑
             if len(config.allow_group_list) != 0 :
-                if event.group_id not in config.group_list:
+                if event.group_id not in config.allow_group_list:
                     return
 
 
@@ -120,7 +144,9 @@ class ChatBot:
             )
 
             if event.group_id:
-                group_info = GroupInfo(group_id=event.group_id, group_name=await bot.get_group_info(group_id = event.group_id,no_cache=True), platform=config.platfrom)
+                group_info = GroupInfo(group_id=event.group_id, 
+                        group_name=(await bot.get_group_info(group_id = event.group_id,no_cache=True))["group_name"], 
+                        platform=config.platfrom)
             else:
                 group_info = None
 
@@ -167,7 +193,7 @@ class ChatBot:
         
         #白名单处理逻辑
         if len(config.allow_group_list) != 0 :
-            if event.group_id not in config.group_list:
+            if event.group_id not in config.allow_group_list:
                 return
 
 
@@ -190,7 +216,9 @@ class ChatBot:
                 )
                 # 获取群信息添加默认值
 
-                group_info = GroupInfo(group_id=event.group_id, group_name=await bot.get_group_info(group_id = event.group_id,no_cache=True), platform=config.platfrom)
+                group_info = GroupInfo(group_id=event.group_id, 
+                        group_name=(await bot.get_group_info(group_id = event.group_id,no_cache=True))["group_name"], 
+                        platform=config.platfrom)
 
         except Exception as e:
             logger.error(f"基础信息获取失败: {e}")
@@ -232,7 +260,7 @@ class ChatBot:
 
         #白名单处理逻辑
         if len(config.allow_group_list) != 0 :
-            if event.group_id not in config.group_list:
+            if event.group_id not in config.allow_group_list:
                 return
 
 
@@ -268,7 +296,9 @@ class ChatBot:
         # 构建群聊信息（如果是群聊）
         group_info = None
         if isinstance(event, GroupMessageEvent):
-            group_info = GroupInfo(group_id=event.group_id, group_name=None, platform=config.platfrom)
+            group_info = GroupInfo(group_id=event.group_id, 
+                    group_name=(await bot.get_group_info(group_id = event.group_id,no_cache=True))["group_name"], 
+                    platform=config.platfrom)
 
         # 创建消息对象
         message_info = BaseMessageInfo(
@@ -278,7 +308,7 @@ class ChatBot:
                 group_info= group_info,
                 user_info = user_info,
         )
-        logger.info (event.get_message())
+        # logger.info (event.get_message())
         message_seg = Seg(
                 type = 'text',
                 data = combined_message,  
