@@ -234,7 +234,6 @@ class ChatBot:
             image_data = await bot.get_image(file=image_file)
             file_path = image_data["file"]
             base64_str = local_file_to_base64(file_path)
-            logger.info(f"{base64_str}")
 
             
             message_seg = Seg(
