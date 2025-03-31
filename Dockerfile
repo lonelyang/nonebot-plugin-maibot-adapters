@@ -3,9 +3,9 @@ LABEL authors="infinitycat233"
 
 WORKDIR /adapters
 
-COPY maim_message /appdata/maim_message
-RUN pip install -e /appdata/maim_message -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
-RUN pip install nonebot-adapter-onebot nonebot2[fastapi] nonebot2[websockets] -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+COPY maim_message /maim_message
+RUN pip install -e /maim_message
+RUN pip install nonebot-adapter-onebot nonebot2[fastapi] nonebot2[websockets]
 
 COPY test .
 
