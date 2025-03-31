@@ -15,6 +15,7 @@ from .util import local_file_to_base64
 
 import httpx
 import time
+import re
 
 
 
@@ -37,8 +38,6 @@ class ChatBot:
 
     async def handle_message(self, event: MessageEvent, bot: Bot) -> None:
         """处理收到的消息"""
-
-
 
         self.bot = bot  # 更新 bot 实例
         if isinstance(event, PrivateMessageEvent):
@@ -74,8 +73,8 @@ class ChatBot:
             group_info = GroupInfo(group_id=event.group_id, 
                                    group_name=(await bot.get_group_info(group_id = event.group_id,no_cache=True))["group_name"], 
                                    platform=config.platfrom)
-
-
+            
+        
         message_info = BaseMessageInfo(
                 platform = config.platfrom,
                 message_id = event.message_id,
@@ -83,29 +82,10 @@ class ChatBot:
                 group_info = group_info,
                 user_info = user_info,
         )
-        
-        # 这里是暂不支持的回复消息我想想怎么改
-        # if event.reply:
-        #     reply_id = None
-        #     for segment in event.reply.message:
-        #         if segment.type == "reply":
-        #             reply_id = segment.data.get("id")
-        #     message_seg = Seg(
-        #         type = 'seglist',
-        #         data = [
-        #             Seg(type='reply' , data = reply_id),
-        #             Seg(type='text' , data = event.get_plaintext())
-        #         ]
-        #     )      
-        # else: 
-        #     message_seg = Seg(
-        #             type = 'text',
-        #             data = event.get_plaintext(),  
-        #     )
 
         message_seg = Seg(  
                     type = 'text',
-                    data = event.get_plaintext(),  
+                    data = str(event.message),  
             )
 
 
@@ -249,10 +229,66 @@ class ChatBot:
         )
             message_base = MessageBase(message_info,message_seg,raw_message="")   
             
-            await self.message_process(message_base)
-                
+            await self.message_process(message_base)          
+
+    async def handle_reply_message(self, event: MessageEvent, bot: Bot) -> None:
+        """处理收到的消息"""
+
+        self.bot = bot  # 更新 bot 实例
+        if isinstance(event, PrivateMessageEvent):
+            try:
+                user_info = UserInfo(
+                    user_id=event.user_id,
+                    user_nickname=(await bot.get_stranger_info(user_id=event.user_id, no_cache=True))["nickname"],
+                    user_cardname=None,
+                    platform=config.platfrom,
+                )
+            except Exception as e:
+                logger.error(f"获取陌生人信息失败: {e}")
+                return
+            logger.debug(user_info)
+            group_info = None
+
+        # 处理群聊消息
+        else:
+            #白名单处理逻辑
+            if len(config.allow_group_list) != 0 :
+                if event.group_id not in config.allow_group_list:
+                    return
+
+            user_info = UserInfo(
+                user_id=event.user_id,
+                user_nickname=event.sender.nickname,
+                user_cardname=event.sender.card or None,
+                platform=config.platfrom,
+            )
+            
+            group_info = GroupInfo(group_id=event.group_id, 
+                                   group_name=(await bot.get_group_info(group_id = event.group_id,no_cache=True))["group_name"], 
+                                   platform=config.platfrom)
+
+        message_content =  f"昵称为：{event.sender.nickname}(id{event.user_id})对消息\n"
+        message_content += f"-{event.reply.sender.nickname}(id{event.reply.user_id}):{event.reply.message}\n回复了以下信息："
+        message_content+=event.get_plaintext()
+        # logger.info(f"\n\n\n{message_content}\n\n\n")
+
+        message_info = BaseMessageInfo(
+                platform = config.platfrom,
+                message_id = event.message_id,
+                time = int(time.time()),
+                group_info = group_info,
+                user_info = user_info,
+        )
+
+        message_seg = Seg(  
+                    type = 'text',
+                    data = message_content,  
+            )
 
 
+        message_base = MessageBase(message_info,message_seg,raw_message=event.get_plaintext())
+
+        await self.message_process(message_base)
 
     async def handle_forward_message(self, event: MessageEvent, bot: Bot) -> None:
         """专用于处理合并转发的消息处理器"""
@@ -355,7 +391,6 @@ class ChatBot:
         else:
             return f"[{seg_type}]"
 
-
     async def message_process(self, message_base: MessageBase) -> None:
 
         payload = message_base.to_dict()
@@ -377,6 +412,7 @@ class ChatBot:
             logger.success(f"收到服务端响应: {response_data}")
             logger.debug(f"响应内容: {response_data}")
         
+
 
 # 创建全局ChatBot实例
 chat_bot = ChatBot()
