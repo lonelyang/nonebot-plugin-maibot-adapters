@@ -11,11 +11,12 @@ from nonebot.adapters.onebot.v11 import (
 )
 from maim_message import UserInfo, GroupInfo, Seg ,BaseMessageInfo,MessageBase,FormatInfo,TemplateInfo
 from .config import Config
-from .util import local_file_to_base64
+from .util import local_file_to_base64,download_image_url
 
 import httpx
 import time
 import re
+import asyncio
 
 
 
@@ -105,7 +106,7 @@ class ChatBot:
             )
 
 
-        message_base = MessageBase(message_info,message_seg,raw_message=event.get_plaintext())
+        message_base = MessageBase(message_info,message_seg,raw_message=message_content)
 
         await self.message_process(message_base)
 
@@ -221,20 +222,25 @@ class ChatBot:
             return
 
         # 处理图片段
-
         for segment in event.message:
-            if segment.type != "image" :
+            if segment.type != "image":
                 continue  # 跳过非图片段
-            
+
             # 获取真实图片数据（根据协议适配器实现）
             image_file = segment.data.get("file")
-            image_data = await bot.get_image(file=image_file)
-            file_path = image_data["file"]
-            base64_str = local_file_to_base64(file_path)
+            image_url = segment.data.get("url")
+            try:
+                image_data = await asyncio.wait_for(bot.get_image(file=image_file),timeout=3)#3s不响应自动切换一个解决方式
+                file_path = image_data["file"]
+                base64_str = local_file_to_base64(file_path)
+            except asyncio.TimeoutError:
+                logger.info("切换url下载")
+                base64_str = await download_image_url(image_url)
+                #下载并且转换为base64
 
-            
+            # logger.info(base64_str)
             message_seg = Seg(
-                type = 'image',
+                type = "image",
                 data = base64_str
             )
             message_info = BaseMessageInfo(

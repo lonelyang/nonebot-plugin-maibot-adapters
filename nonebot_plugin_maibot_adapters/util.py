@@ -1,6 +1,8 @@
 import base64
 from pathlib import Path
 import hashlib
+import aiohttp
+from nonebot import logger
 
 def local_file_to_base64(file_path: str) -> str:
     # 读取本地图片文件
@@ -68,3 +70,16 @@ def base64_to_image(base64_str: str, save_dir: str = "data/images") -> str:
         return f"file:///{save_path.absolute().as_posix()}"
     except Exception as e:
         raise ValueError(f"Base64解码失败: {str(e)}")
+    
+
+async def download_image_url(url: str) -> bytes:
+    """直接返回 Base64 字符串"""
+    try:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
+            async with session.get(url) as resp:
+                resp.raise_for_status()
+                image_bytes = await resp.read()
+                return base64.b64encode(image_bytes).decode("utf-8")
+    except Exception as e:
+        logger.error(f"图片下载失败: {str(e)}")
+        raise
