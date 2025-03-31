@@ -33,7 +33,7 @@ async def _(bot: Bot, event: MessageEvent):
     # 处理合并转发消息
     if "forward" in event.message:
         await chat_bot.handle_forward_message(event, bot)
-    elif any(segment.type == "image" or "emoji" for segment in event.message):
+    elif any(segment.type in {"image", "emoji"} for segment in event.message):  
         await chat_bot.handle_image_message(event, bot)
     elif event.reply:
         await chat_bot.handle_reply_message(event,bot)
