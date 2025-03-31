@@ -39,6 +39,8 @@ class ChatBot:
     async def handle_message(self, event: MessageEvent, bot: Bot) -> None:
         """处理收到的消息"""
 
+        message_content = ''
+
         self.bot = bot  # 更新 bot 实例
         if isinstance(event, PrivateMessageEvent):
             try:
@@ -52,6 +54,8 @@ class ChatBot:
                 logger.error(f"获取陌生人信息失败: {e}")
                 return
             logger.debug(user_info)
+
+            message_content = event.get_plaintext()
 
             # group_info = GroupInfo(group_id=0, group_name="私聊", platform=config.platfrom)
             group_info = None
@@ -74,6 +78,18 @@ class ChatBot:
                                    group_name=(await bot.get_group_info(group_id = event.group_id,no_cache=True))["group_name"], 
                                    platform=config.platfrom)
             
+            msg = str(event.get_message())
+            qq_ids = list(set(re.findall(r'\[CQ:at,qq=(\d+)\]', msg)))
+            # 批量获取用户信息
+            nicknames = {qq: (await bot.get_stranger_info(user_id=int(qq)))["nickname"] 
+                        for qq in qq_ids}
+    
+            message_content = re.sub(
+                r'\[CQ:at,qq=(\d+)\]',
+                lambda m: f'@{nicknames[m.group(1)]}（id:{m.group(1)}）',
+                msg
+            )
+            
         
         message_info = BaseMessageInfo(
                 platform = config.platfrom,
@@ -85,7 +101,7 @@ class ChatBot:
 
         message_seg = Seg(  
                     type = 'text',
-                    data = str(event.message),  
+                    data = message_content,  
             )
 
 
