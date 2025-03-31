@@ -35,6 +35,8 @@ async def _(bot: Bot, event: MessageEvent):
         await chat_bot.handle_forward_message(event, bot)
     elif any(segment.type == "image" for segment in event.message):
         await chat_bot.handle_image_message(event, bot)
+    elif event.reply:
+        await chat_bot.handle_reply_message(event,bot)
     else:
         await chat_bot.handle_message(event, bot)
 
