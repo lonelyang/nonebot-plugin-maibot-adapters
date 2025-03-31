@@ -221,9 +221,12 @@ class ChatBot:
             return
 
         # 处理图片段
+        seg_type = 'image'
         for segment in event.message:
-            if segment.type != "image":
+            if segment.type != "image" or 'emoji':
                 continue  # 跳过非图片段
+            else :
+                seg_type = segment.type
             
             # 获取真实图片数据（根据协议适配器实现）
             image_file = segment.data.get("file")
@@ -233,8 +236,8 @@ class ChatBot:
 
             
             message_seg = Seg(
-                type="image",
-                data= base64_str
+                type = seg_type,
+                data = base64_str
             )
             message_info = BaseMessageInfo(
                 platform = config.platfrom,
