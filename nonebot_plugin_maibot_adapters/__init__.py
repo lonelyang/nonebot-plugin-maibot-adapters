@@ -79,7 +79,9 @@ async def handle_request(request: Request):
                     message_chain += MessageSegment.image(file=image_path)
                 elif seg_type == 'emoji':
                     # 处理表情消息（示例）
-                    message_chain += MessageSegment.face(id=int(seg_data))
+                    # message_chain += MessageSegment.face(id=int(seg_data))
+                    image_path = base64_to_image(seg_data)
+                    message_chain += MessageSegment.image(file=image_path)
         else:
             # 处理单一类型消息
             seg_type = message_segment.get('type')
