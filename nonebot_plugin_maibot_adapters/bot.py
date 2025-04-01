@@ -79,13 +79,16 @@ class ChatBot:
                                    group_name=(await bot.get_group_info(group_id = event.group_id,no_cache=True))["group_name"], 
                                    platform=config.platfrom)
             
+            #这里是at信息的处理逻辑 可能会比较混乱，但是暂时没找到更好的解决方式
+            if(event.is_tome()):
+                message_content += f"@{config.Nickname}({event.self_id})"
+
             msg = str(event.get_message())
             qq_ids = list(set(re.findall(r'\[CQ:at,qq=(\d+)\]', msg)))
-            # 批量获取用户信息
             nicknames = {qq: (await bot.get_stranger_info(user_id=int(qq)))["nickname"] 
                         for qq in qq_ids}
     
-            message_content = re.sub(
+            message_content += re.sub(
                 r'\[CQ:at,qq=(\d+)\]',
                 lambda m: f'@{nicknames[m.group(1)]}（id:{m.group(1)}）',
                 msg
@@ -417,7 +420,7 @@ class ChatBot:
     async def message_process(self, message_base: MessageBase) -> None:
 
         payload = message_base.to_dict()
-        
+        # logger.info(payload)
         logger.info("消息发送成功")
 
         response = await self.client.post(
