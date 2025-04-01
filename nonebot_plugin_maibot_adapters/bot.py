@@ -148,7 +148,7 @@ class ChatBot:
                 group_info = None
 
             message_info = BaseMessageInfo(
-                    platform = 'qq',
+                    platform = config.platfrom,
                     message_id = None,
                     time = int(time.time()),
                     group_info= group_info,
