@@ -9,7 +9,7 @@ RUN pip install nonebot-adapter-onebot nonebot2[fastapi] nonebot2[websockets]
 
 COPY nonebot_plugin_maibot_adapters /adapters/src/plugins/nonebot_plugin_maibot_adapters
 
-VOLUME /adapters/src/plugins
+VOLUME ["/adapters/src/plugins"]
 
 EXPOSE 18002
 
