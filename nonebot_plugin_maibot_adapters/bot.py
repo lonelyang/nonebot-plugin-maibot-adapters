@@ -80,19 +80,27 @@ class ChatBot:
                                    platform=config.platfrom)
             
             #这里是at信息的处理逻辑 可能会比较混乱，但是暂时没找到更好的解决方式
-            if(event.is_tome()):
-                message_content += f"@{config.Nickname}({event.self_id})"
-
-            msg = str(event.get_message())
+            msg = str(event.raw_message)
+            logger.info(f"{msg}")
             qq_ids = list(set(re.findall(r'\[CQ:at,qq=(\d+)\]', msg)))
-            nicknames = {qq: (await bot.get_stranger_info(user_id=int(qq)))["nickname"] 
-                        for qq in qq_ids}
-    
-            message_content += re.sub(
-                r'\[CQ:at,qq=(\d+)\]',
-                lambda m: f'@{nicknames[m.group(1)]}（id:{m.group(1)}）',
-                msg
-            )
+            if not qq_ids:  # 没有 @ 消息
+                message_content = msg
+            else:
+                # 获取用户昵称，失败时提供默认值
+                nicknames = {}
+                for qq in qq_ids:
+                    try:
+                        info = await bot.get_stranger_info(user_id=int(qq))
+                        nicknames[qq] = info.get("nickname", f"用户{qq}")
+                    except Exception:
+                        nicknames[qq] = f"用户{qq}"
+
+                # 替换 @ 消息，避免 KeyError
+                message_content = re.sub(
+                    r'\[CQ:at,qq=(\d+)\]',
+                    lambda m: f'@{nicknames.get(m.group(1), f"用户{m.group(1)}")}（id:{m.group(1)}）',
+                    msg
+                )
             
         
         message_info = BaseMessageInfo(
