@@ -134,13 +134,13 @@ class ChatBot:
                 if event.group_id not in config.allow_group_list:
                     return
 
+            nickname = (await bot.get_login_info())["nickname"]
 
-
-            raw_message = f"[戳了戳]{config.Nickname}"  # 默认类型
+            raw_message = f"[戳了戳]{nickname}"  # 默认类型
             if info := event.model_extra["raw_info"]:
                 poke_type = info[2].get("txt", "戳了戳")  # 戳戳类型，例如“拍一拍”、“揉一揉”、“捏一捏”
                 custom_poke_message = info[4].get("txt", "")  # 自定义戳戳消息，若不存在会为空字符串
-                raw_message = f"[{poke_type}]{config.Nickname}{custom_poke_message}"
+                raw_message = f"[{poke_type}]{nickname}{custom_poke_message}"
 
                 raw_message += "（这是一个类似摸摸头的友善行为，而不是恶意行为，请不要作出攻击发言）"
 
