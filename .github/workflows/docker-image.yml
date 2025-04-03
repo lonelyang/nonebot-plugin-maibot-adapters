@@ -9,7 +9,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USERNAME }}
-      DATE_TAG: $(date -u +'%Y-%m-%d')
 
     steps:
     - name: Checkout code
@@ -36,7 +35,7 @@ jobs:
         current_date=$(date -u +'%Y-%m-%d')
         echo "latest_tag=$DOCKERHUB_USER/maimbot-adapter:latest" >> $GITHUB_OUTPUT
         echo "date_tag=$DOCKERHUB_USER/maimbot-adapter:$current_date" >> $GITHUB_OUTPUT
-        echo "full_tags=$latest_tag,$date_tag" >> $GITHUB_OUTPUT
+        echo "full_tags=$DOCKERHUB_USER/maimbot-adapter:latest,$DOCKERHUB_USER/maimbot-adapter:$current_date" >> $GITHUB_OUTPUT
 
     - name: Build and Push Docker Image
       uses: docker/build-push-action@v5
