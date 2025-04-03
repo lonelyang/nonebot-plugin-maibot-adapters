@@ -310,8 +310,8 @@ class ChatBot:
                                    group_name=(await bot.get_group_info(group_id = event.group_id,no_cache=True))["group_name"], 
                                    platform=config.platfrom)
 
-        message_content =  f"昵称为：{event.sender.nickname}(id{event.user_id})对消息\n"
-        message_content += f"-{event.reply.sender.nickname}(id{event.reply.user_id}):{event.reply.message}\n回复了以下信息："
+        message_content =  f"回复{event.reply.sender.nickname}的消息，说："
+        # message_content += f"-{event.reply.sender.nickname}(id{event.reply.user_id}):{event.reply.message}\n回复了以下信息："
         message_content+=event.get_plaintext()
         # logger.info(f"\n\n\n{message_content}\n\n\n")
 
@@ -357,11 +357,11 @@ class ChatBot:
             message_content = await self.process_message_segments(node["message"], layer=0)
 
             # 拼接为【昵称】+ 内容
-            processed_messages.append(f"【{nickname}】{message_content}")
+            processed_messages.append(f"{nickname}：{message_content}")
 
         # 组合所有消息
         combined_message = "\n".join(processed_messages)
-        combined_message = f"合并转发消息内容：\n{combined_message}"
+        combined_message = f"转发了消息：\n{combined_message}"
 
         # 构建用户信息（使用转发消息的发送者）
         user_info = UserInfo(
