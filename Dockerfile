@@ -5,8 +5,8 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 WORKDIR /adapters
 
 COPY maim_message /maim_message
-RUN pip install --system -e /maim_message
-RUN pip install --system nonebot-adapter-onebot nonebot2[fastapi] nonebot2[websockets]
+RUN uv pip install --system -e /maim_message
+RUN uv pip install --system nonebot-adapter-onebot nonebot2[fastapi] nonebot2[websockets]
 
 COPY entrypoint.sh /entrypoint.sh
 COPY nonebot_plugin_maibot_adapters /backup/nonebot_plugin_maibot_adapters
