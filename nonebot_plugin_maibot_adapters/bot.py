@@ -80,19 +80,27 @@ class ChatBot:
                                    platform=config.platfrom)
             
             #这里是at信息的处理逻辑 可能会比较混乱，但是暂时没找到更好的解决方式
-            if(event.is_tome()):
-                message_content += f"@{config.Nickname}({event.self_id})"
-
-            msg = str(event.get_message())
+            msg = str(event.raw_message)
+            logger.info(f"{msg}")
             qq_ids = list(set(re.findall(r'\[CQ:at,qq=(\d+)\]', msg)))
-            nicknames = {qq: (await bot.get_stranger_info(user_id=int(qq)))["nickname"] 
-                        for qq in qq_ids}
-    
-            message_content += re.sub(
-                r'\[CQ:at,qq=(\d+)\]',
-                lambda m: f'@{nicknames[m.group(1)]}（id:{m.group(1)}）',
-                msg
-            )
+            if not qq_ids:  # 没有 @ 消息
+                message_content = msg
+            else:
+                # 获取用户昵称，失败时提供默认值
+                nicknames = {}
+                for qq in qq_ids:
+                    try:
+                        info = await bot.get_stranger_info(user_id=int(qq))
+                        nicknames[qq] = info.get("nickname", f"用户{qq}")
+                    except Exception:
+                        nicknames[qq] = f"用户{qq}"
+
+                # 替换 @ 消息，避免 KeyError
+                message_content = re.sub(
+                    r'\[CQ:at,qq=(\d+)\]',
+                    lambda m: f'@{nicknames.get(m.group(1), f"用户{m.group(1)}")}（id:{m.group(1)}）',
+                    msg
+                )
             
         
         message_info = BaseMessageInfo(
@@ -228,22 +236,30 @@ class ChatBot:
         for segment in event.message:
             if segment.type != "image":
                 continue  # 跳过非图片段
-
+            
             # 获取真实图片数据（根据协议适配器实现）
             image_file = segment.data.get("file")
             image_url = segment.data.get("url")
+            subtype = segment.data.get("sub_type")
             try:
-                image_data = await asyncio.wait_for(bot.get_image(file=image_file),timeout=3)#3s不响应自动切换一个解决方式
+                #这里是私人emoji和图片
+                image_data = await asyncio.wait_for(bot.get_image(file=image_file),timeout=2)#2s不响应自动切换一个解决方式
                 file_path = image_data["file"]
                 base64_str = local_file_to_base64(file_path)
+                if subtype == 0: #图片
+                    image_type = 'image'
+                else:
+                    image_type = 'emoji'
             except asyncio.TimeoutError:
+                #这里是商店的emoji
+                image_type = 'emoji'
                 logger.info("切换url下载")
                 base64_str = await download_image_url(image_url)
                 #下载并且转换为base64
 
-            # logger.info(base64_str)
+            # logger.info(image_type)
             message_seg = Seg(
-                type = "image",
+                type = image_type,
                 data = base64_str
             )
             message_info = BaseMessageInfo(
@@ -256,6 +272,7 @@ class ChatBot:
             message_base = MessageBase(message_info,message_seg,raw_message="")   
             
             await self.message_process(message_base)          
+
 
     async def handle_reply_message(self, event: MessageEvent, bot: Bot) -> None:
         """处理收到的消息"""
