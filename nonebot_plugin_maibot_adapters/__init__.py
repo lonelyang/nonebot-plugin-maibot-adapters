@@ -91,6 +91,9 @@ async def handle_request(request: Request):
             elif seg_type == 'image':
                 image_path = base64_to_image(seg_data)
                 message_chain += MessageSegment.image(file=image_path)
+            elif seg_type == 'emoji':
+                image_path = base64_to_image(seg_data)
+                message_chain += MessageSegment.image(file=image_path)
 
         # 添加回复引用（如果存在）
         if reply_msg_id:
