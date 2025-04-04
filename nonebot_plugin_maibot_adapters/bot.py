@@ -259,9 +259,9 @@ class ChatBot:
                 # logger.info(image_type)
                 seg_list.append(Seg(type = image_type,data = base64_str))
             elif segment.type == "text" :
-                seg_list.append(Seg(type = "text",data = segment.data))
+                seg_list.append(Seg(type = "text",data = str(segment.data)))
             elif segment.type == "at" :
-                seg_list.append(Seg(type = "text",data = segment.data))
+                seg_list.append(Seg(type = "text",data = str(segment.data)))
             else:
                 continue
 
