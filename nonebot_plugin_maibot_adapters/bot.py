@@ -245,6 +245,7 @@ class ChatBot:
                     image_data = await asyncio.wait_for(bot.get_image(file=image_file),timeout=2)#2s不响应自动切换一个解决方式
                     file_path = image_data["file"]
                     base64_str = local_file_to_base64(file_path)
+                    subtype = str(subtype) # 确保类型一致性
                     if subtype == "0": #图片
                         image_type = 'image'
                     else:
