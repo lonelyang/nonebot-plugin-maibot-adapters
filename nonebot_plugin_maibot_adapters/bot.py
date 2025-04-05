@@ -232,47 +232,57 @@ class ChatBot:
             logger.error(f"基础信息获取失败: {e}")
             return
 
+        seg_list = []
         # 处理图片段
         for segment in event.message:
-            if segment.type != "image":
-                continue  # 跳过非图片段
-            
-            # 获取真实图片数据（根据协议适配器实现）
-            image_file = segment.data.get("file")
-            image_url = segment.data.get("url")
-            subtype = segment.data.get("sub_type")
-            try:
-                #这里是私人emoji和图片
-                image_data = await asyncio.wait_for(bot.get_image(file=image_file),timeout=2)#2s不响应自动切换一个解决方式
-                file_path = image_data["file"]
-                base64_str = local_file_to_base64(file_path)
-                if subtype == 0: #图片
-                    image_type = 'image'
-                else:
+            if segment.type == "image":
+                # 获取真实图片数据（根据协议适配器实现）
+                image_file = segment.data.get("file")
+                image_url = segment.data.get("url")
+                subtype = segment.data.get("sub_type")
+                try:
+                    #这里是私人emoji和图片
+                    image_data = await asyncio.wait_for(bot.get_image(file=image_file),timeout=2)#2s不响应自动切换一个解决方式
+                    file_path = image_data["file"]
+                    base64_str = local_file_to_base64(file_path)
+                    subtype = str(subtype) # 确保类型一致性
+                    if subtype == "0": #图片
+                        image_type = 'image'
+                    else:
+                        image_type = 'emoji'
+                except asyncio.TimeoutError:
+                    #这里是商店的emoji
                     image_type = 'emoji'
-            except asyncio.TimeoutError:
-                #这里是商店的emoji
-                image_type = 'emoji'
-                logger.info("切换url下载")
-                base64_str = await download_image_url(image_url)
-                #下载并且转换为base64
+                    logger.info("切换url下载")
+                    base64_str = await download_image_url(image_url)
+                    #下载并且转换为base64
 
-            # logger.info(image_type)
-            message_seg = Seg(
-                type = image_type,
-                data = base64_str
-            )
-            message_info = BaseMessageInfo(
-                platform = config.platfrom,
-                message_id = event.message_id,
-                time = int(time.time()),
-                group_info= group_info,
-                user_info = user_info,
+                # logger.info(image_type)
+                seg_list.append(Seg(type = image_type,data = base64_str))
+            elif segment.type == "text" :
+                seg_list.append(Seg(type = "text",data = str(segment.data.get("text",""))))
+            elif segment.type == "at" :
+                seg_at_id = str(segment.data.get("qq",""))
+                user_nickname=(await bot.get_stranger_info(user_id=seg_at_id))["nickname"]
+                seg_list.append(Seg(type = "text",data = f"@{user_nickname}({seg_at_id})"))
+            else:
+                continue
+
+        if len(seg_list) == 1:
+            message_content = seg_list[0]
+        else :
+            message_content = Seg(type="seglist",data = seg_list)
+
+        message_info = BaseMessageInfo(
+            platform = config.platfrom,
+            message_id = event.message_id,
+            time = int(time.time()),
+            group_info= group_info,
+            user_info = user_info,
         )
-            message_base = MessageBase(message_info,message_seg,raw_message="")   
-            
-            await self.message_process(message_base)          
-
+        message_base = MessageBase(message_info,message_content,raw_message="")   
+        
+        await self.message_process(message_base)    
 
     async def handle_reply_message(self, event: MessageEvent, bot: Bot) -> None:
         """处理收到的消息"""
