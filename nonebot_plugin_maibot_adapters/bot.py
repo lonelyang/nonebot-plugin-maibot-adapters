@@ -260,9 +260,11 @@ class ChatBot:
                 # logger.info(image_type)
                 seg_list.append(Seg(type = image_type,data = base64_str))
             elif segment.type == "text" :
-                seg_list.append(Seg(type = "text",data = str(segment.data)))
+                seg_list.append(Seg(type = "text",data = str(segment.data.get("text",""))))
             elif segment.type == "at" :
-                seg_list.append(Seg(type = "text",data = str(segment.data)))
+                seg_at_id = str(segment.data.get("qq",""))
+                user_nickname=(await bot.get_stranger_info(user_id=seg_at_id))["nickname"]
+                seg_list.append(Seg(type = "text",data = f"@{user_nickname}({seg_at_id})"))
             else:
                 continue
 
