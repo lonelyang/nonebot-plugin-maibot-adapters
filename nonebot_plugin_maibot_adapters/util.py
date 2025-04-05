@@ -3,6 +3,7 @@ from pathlib import Path
 import hashlib
 import aiohttp
 from nonebot import logger
+import ssl
 
 def local_file_to_base64(file_path: str) -> str:
     # 读取本地图片文件
@@ -72,10 +73,18 @@ def base64_to_image(base64_str: str, save_dir: str = "data/images") -> str:
         raise ValueError(f"Base64解码失败: {str(e)}")
     
 
-async def download_image_url(url: str) -> bytes:
+async def download_image_url(url: str) -> str:
     """直接返回 Base64 字符串"""
     try:
-        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
+        # 创建 SSL 上下文，禁用 SSLv3，允许 TLS 1.2+
+        ssl_context = ssl.create_default_context()
+        ssl_context.options |= ssl.OP_NO_SSLv3  # 禁用 SSLv3
+        ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2  # 强制 TLS 1.2+（Python 3.7+）
+
+        async with aiohttp.ClientSession(
+            timeout=aiohttp.ClientTimeout(total=10),
+            connector=aiohttp.TCPConnector(ssl=ssl_context)  # 应用自定义 SSL 配置
+        ) as session:
             async with session.get(url) as resp:
                 resp.raise_for_status()
                 image_bytes = await resp.read()
