@@ -1,4 +1,4 @@
-from nonebot import logger
+from nonebot import logger, get_plugin_config
 from nonebot.adapters.onebot.v11 import (
     Bot,
     MessageEvent,
@@ -20,7 +20,7 @@ import asyncio
 
 
 
-config = Config()
+config = get_plugin_config(Config)
 
 # 定义日志配置
 
@@ -28,7 +28,7 @@ class ChatBot:
     def __init__(self):
         self.bot = None  # bot 实例引用
         self._started = False
-        self.fastapi_url =  config.Fastapi_url
+        self.fastapi_url =  config.fastapi_url
         self.client = httpx.AsyncClient(timeout=60)  # 创建异步HTTP客户端
 
     async def _ensure_started(self):
@@ -320,7 +320,7 @@ class ChatBot:
                                    group_name=(await bot.get_group_info(group_id = event.group_id,no_cache=True))["group_name"], 
                                    platform=config.platfrom)
 
-        message_content =  f"回复{event.reply.sender.nickname}的消息，说："
+        message_content =  f"回复{event.reply.sender.nickname}({event.reply.sender.user_id})的消息，说："
         # message_content += f"-{event.reply.sender.nickname}(id{event.reply.user_id}):{event.reply.message}\n回复了以下信息："
         message_content+=event.get_plaintext()
         # logger.info(f"\n\n\n{message_content}\n\n\n")
