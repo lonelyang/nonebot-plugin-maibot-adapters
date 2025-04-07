@@ -6,6 +6,7 @@ from nonebot import logger
 import ssl
 from PIL import Image
 from io import BytesIO
+from nonebot.adapters.onebot.v11 import MessageEvent
 
 def local_file_to_base64(file_path: str) -> str:
     # 读取本地图片文件
@@ -109,3 +110,11 @@ async def download_image_url(url: str) -> str:
     except Exception as e:
         logger.error(f"图片下载失败: {str(e)}")
         raise
+    
+def is_group_announcement(event: MessageEvent) -> bool:
+    for segment in event.message:
+        if segment.type == "json":
+            data = segment.data.get("data", "")
+            if '"app":"com.tencent.mannounce"' in data:
+                return True
+    return False

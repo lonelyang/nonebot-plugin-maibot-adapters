@@ -17,6 +17,8 @@ import httpx
 import time
 import re
 import asyncio
+import json
+import base64
 
 
 
@@ -103,6 +105,61 @@ class ChatBot:
                 )
             
         
+        message_info = BaseMessageInfo(
+                platform = config.platfrom,
+                message_id = event.message_id,
+                time = int(time.time()),
+                group_info = group_info,
+                user_info = user_info,
+        )
+
+        message_seg = Seg(  
+                    type = 'text',
+                    data = message_content,  
+            )
+
+
+        message_base = MessageBase(message_info,message_seg,raw_message=message_content)
+
+        await self.message_process(message_base)
+
+    async def handle_group_announcement(self, event: MessageEvent, bot: Bot) -> None:
+        """处理收到的消息"""
+
+        self.bot = bot  # 更新 bot 实例
+            #白名单处理逻辑
+        if len(config.allow_group_list) != 0 :
+            if event.group_id not in config.allow_group_list:
+                return
+
+        message_content = ""
+        for segment in event.message:
+            if segment.type == "json":
+                try:
+
+                    data = json.loads(segment.data["data"].replace("&#44;", ","))
+                    mannounce = data["meta"]["mannounce"]
+                    title = base64.b64decode(mannounce["title"]).decode("utf-8") if mannounce.get("title") else ""
+                    text = base64.b64decode(mannounce["text"]).decode("utf-8") if mannounce.get("text") else ""
+                    
+                    message_content += f"{event.sender.nickname}({event.user_id})发布了【{title}】：\n{text}"
+
+                    
+                except (json.JSONDecodeError, KeyError, UnicodeDecodeError) as e:
+                    print(f"解析群公告失败: {e}")
+
+            
+        group_info = GroupInfo(group_id=event.group_id, 
+                                group_name=(await bot.get_group_info(group_id = event.group_id,no_cache=True))["group_name"], 
+                                platform=config.platfrom)
+        
+        user_info = UserInfo(
+            user_id=event.user_id,
+            user_nickname=event.sender.nickname,
+            user_cardname=event.sender.card or None,
+            platform=config.platfrom,
+        )
+
         message_info = BaseMessageInfo(
                 platform = config.platfrom,
                 message_id = event.message_id,
@@ -320,7 +377,7 @@ class ChatBot:
                                    group_name=(await bot.get_group_info(group_id = event.group_id,no_cache=True))["group_name"], 
                                    platform=config.platfrom)
 
-        message_content =  f"回复{event.reply.sender.nickname}({event.reply.sender.user_id})的消息，说："
+        message_content =  f"回复{event.reply.sender.nickname}的消息({event.reply.message})，说："
         # message_content += f"-{event.reply.sender.nickname}(id{event.reply.user_id}):{event.reply.message}\n回复了以下信息："
         message_content+=event.get_plaintext()
         # logger.info(f"\n\n\n{message_content}\n\n\n")

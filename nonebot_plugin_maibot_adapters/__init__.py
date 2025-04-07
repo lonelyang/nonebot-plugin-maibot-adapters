@@ -8,7 +8,7 @@ from nonebot.log import logger
 from nonebot.adapters.onebot.v11 import Bot,MessageEvent,NoticeEvent,MessageSegment,Message
 from nonebot.drivers.fastapi import Request
 from .bot import chat_bot
-from .util import base64_to_image
+from .util import base64_to_image,is_group_announcement
 
 
 __plugin_meta__ = PluginMetadata(
@@ -37,6 +37,8 @@ async def _(bot: Bot, event: MessageEvent):
         await chat_bot.handle_image_message(event, bot)
     elif event.reply:
         await chat_bot.handle_reply_message(event,bot)
+    elif is_group_announcement(event):
+        await chat_bot.handle_group_announcement(event,bot)
     else:
         await chat_bot.handle_message(event, bot)
 
