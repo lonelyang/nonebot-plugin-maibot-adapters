@@ -8,14 +8,26 @@ from PIL import Image
 from io import BytesIO
 from nonebot.adapters.onebot.v11 import MessageEvent
 
-def local_file_to_base64(file_path: str) -> str:
-    # 读取本地图片文件
-    with open(file_path, "rb") as f:
-        image_data = f.read()
+def local_file_to_base64(file_path: str) -> str | None:
+    """
+    读取本地图片文件并转换为 Base64 字符串
+    :param file_path: 图片文件路径
+    :return: Base64 字符串，如果文件不存在则返回 None
+    """
+    #解决一下奇妙的分离部署问题
+    try:
+        # 尝试读取文件
+        with open(file_path, "rb") as f:
+            image_data = f.read()
+        
+        # 转换为 Base64
+        base64_str = base64.b64encode(image_data).decode("utf-8")
+        return base64_str
     
-    # 拼接Base64字符串
-    base64_str = base64.b64encode(image_data).decode("utf-8")
-    return base64_str
+    except FileNotFoundError:
+        # 文件不存在，返回 None
+        logger.info("本地文件不存在，切换url下载")
+        return None
 
 def detect_image_type(data: bytes) -> str:
     """通过文件头识别常见图片格式"""
