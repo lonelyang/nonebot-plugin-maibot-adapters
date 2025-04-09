@@ -7,8 +7,9 @@ import ssl
 from PIL import Image
 from io import BytesIO
 from nonebot.adapters.onebot.v11 import MessageEvent
+from typing import Union
 
-def local_file_to_base64(file_path: str) -> str | None:
+def local_file_to_base64(file_path: str) -> Union[str, None]:
     """
     读取本地图片文件并转换为 Base64 字符串
     :param file_path: 图片文件路径

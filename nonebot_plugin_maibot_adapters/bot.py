@@ -108,7 +108,7 @@ class ChatBot:
         message_info = BaseMessageInfo(
                 platform = config.platfrom,
                 message_id = event.message_id,
-                time = int(time.time()),
+                time = time.time(),
                 group_info = group_info,
                 user_info = user_info,
         )
@@ -163,7 +163,7 @@ class ChatBot:
         message_info = BaseMessageInfo(
                 platform = config.platfrom,
                 message_id = event.message_id,
-                time = int(time.time()),
+                time = time.time(),
                 group_info = group_info,
                 user_info = user_info,
         )
@@ -218,7 +218,7 @@ class ChatBot:
             message_info = BaseMessageInfo(
                     platform = config.platfrom,
                     message_id = None,
-                    time = int(time.time()),
+                    time = time.time(),
                     group_info= group_info,
                     user_info = user_info,
             )
@@ -335,7 +335,7 @@ class ChatBot:
         message_info = BaseMessageInfo(
             platform = config.platfrom,
             message_id = event.message_id,
-            time = int(time.time()),
+            time = time.time(),
             group_info= group_info,
             user_info = user_info,
         )
@@ -387,7 +387,7 @@ class ChatBot:
         message_info = BaseMessageInfo(
                 platform = config.platfrom,
                 message_id = event.message_id,
-                time = int(time.time()),
+                time = time.time(),
                 group_info = group_info,
                 user_info = user_info,
         )
@@ -451,7 +451,7 @@ class ChatBot:
         message_info = BaseMessageInfo(
                 platform = config.platfrom,
                 message_id = event.message_id,
-                time = int(time.time()),
+                time = time.time(),
                 group_info= group_info,
                 user_info = user_info,
         )
