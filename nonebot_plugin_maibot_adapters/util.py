@@ -91,16 +91,35 @@ def base64_to_image(base64_str: str, save_dir: str = "data/images") -> str:
         raise ValueError(f"图片处理失败: {str(e)}")
 
 async def download_image_url(url: str) -> str:
-    """直接返回 Base64 字符串"""
     try:
-        # 创建 SSL 上下文，禁用 SSLv3，允许 TLS 1.2+
-        ssl_context = ssl.create_default_context()
-        ssl_context.options |= ssl.OP_NO_SSLv3  # 禁用 SSLv3
-        ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2  # 强制 TLS 1.2+（Python 3.7+）
+        import ssl
+        from aiohttp import ClientSession, ClientTimeout, TCPConnector
+        from yarl import URL  # 使用yarl解析URL
 
-        async with aiohttp.ClientSession(
-            timeout=aiohttp.ClientTimeout(total=10),
-            connector=aiohttp.TCPConnector(ssl=ssl_context)  # 应用自定义 SSL 配置
+        # 使用yarl解析URL获取主机名
+        parsed_url = URL(url)
+        hostname = parsed_url.host  # 直接获取主机名
+
+        # 创建自定义SSL上下文
+        ssl_context = ssl.create_default_context()
+        ssl_context.options |= (
+            ssl.OP_NO_SSLv3 |  # 禁用SSLv3
+            ssl.OP_NO_TLSv1 |  # 禁用TLSv1.0
+            ssl.OP_NO_TLSv1_1  # 禁用TLSv1.1
+        )
+        ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2  # 强制TLSv1.2+
+        ssl_context.set_ciphers('DEFAULT:!aNULL:!eNULL:!MD5:!3DES:!DES')  # 更兼容的加密套件
+
+        # 显式设置SNI（关键步骤）
+        ssl_context.server_hostname = hostname  # 设置SNI主机名
+
+        # 创建带自定义SSL上下文的连接器
+        connector = TCPConnector(ssl=ssl_context)
+
+        # 增加超时时间至20秒
+        async with ClientSession(
+            timeout=ClientTimeout(total=20),
+            connector=connector
         ) as session:
             async with session.get(url) as resp:
                 resp.raise_for_status()
