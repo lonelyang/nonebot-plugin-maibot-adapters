@@ -6,6 +6,9 @@ from nonebot import logger
 import ssl
 from PIL import Image
 from io import BytesIO
+import asyncio
+from maim_message import Seg
+from nonebot.adapters.onebot.v11 import Bot
 
 def local_file_to_base64(file_path: str) -> str:
     # 读取本地图片文件
@@ -148,3 +151,34 @@ async def download_image_url(url: str) -> str:
     except Exception as e:
         logger.error(f"图片下载失败: {str(e)}")
         raise
+
+async def message_seg_handler(bot: Bot, message , seg_list):
+    for segment in message:
+        if segment.type == "image":
+            image_file = segment.data.get("file")
+            image_url = segment.data.get("url")
+            subtype = segment.data.get("sub_type")
+            try:
+                image_data = await asyncio.wait_for(bot.get_image(file=image_file), timeout=2)
+                file_path = image_data["file"]
+                base64_str = local_file_to_base64(file_path)
+                subtype = str(subtype)
+                if subtype == "0":
+                    image_type = 'image'
+                else:
+                    image_type = 'emoji'
+            except asyncio.TimeoutError:
+                image_type = 'emoji'
+                logger.info("切换url下载")
+                base64_str = await download_image_url(image_url)
+
+            seg_list.append(Seg(type=image_type, data=base64_str))
+        elif segment.type == "text":
+            seg_list.append(Seg(type="text", data=str(segment.data.get("text", ""))))
+        elif segment.type == "at":
+            seg_at_id = str(segment.data.get("qq", ""))
+            user_nickname = (await bot.get_stranger_info(user_id=seg_at_id))["nickname"]
+            seg_list.append(Seg(type="text", data=f"@{user_nickname}({seg_at_id})"))
+        else:
+            continue
+    return seg_list
