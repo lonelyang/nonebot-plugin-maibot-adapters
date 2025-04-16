@@ -32,6 +32,12 @@ class ChatBot:
         self._started = False
         self.fastapi_url =  config.fastapi_url
         self.client = httpx.AsyncClient(timeout=60)  # 创建异步HTTP客户端
+        self.format_info = FormatInfo(
+            # 消息内容中包含的Seg的type列表
+            content_format=["text", "image", "emoji", "at", "reply"],
+            # 消息发出后，期望最终的消息中包含的消息类型，可以帮助某些plugin判断是否向消息中添加某些消息类型
+            accept_format=["text", "image", "emoji", "reply"],
+        )
 
     async def _ensure_started(self):
         """确保所有任务已启动"""
@@ -111,6 +117,7 @@ class ChatBot:
                 time = time.time(),
                 group_info = group_info,
                 user_info = user_info,
+                format_info=self.format_info,
         )
 
         message_seg = Seg(  
@@ -166,6 +173,7 @@ class ChatBot:
                 time = time.time(),
                 group_info = group_info,
                 user_info = user_info,
+                format_info=self.format_info,
         )
 
         message_seg = Seg(  
@@ -221,6 +229,7 @@ class ChatBot:
                     time = time.time(),
                     group_info= group_info,
                     user_info = user_info,
+                    format_info=self.format_info,
             )
 
             message_seg = Seg(
@@ -338,6 +347,7 @@ class ChatBot:
             time = time.time(),
             group_info= group_info,
             user_info = user_info,
+            format_info=self.format_info,
         )
         message_base = MessageBase(message_info,message_content,raw_message="")   
         
@@ -390,6 +400,7 @@ class ChatBot:
                 time = time.time(),
                 group_info = group_info,
                 user_info = user_info,
+                format_info=self.format_info,
         )
 
         message_seg = Seg(  
@@ -454,6 +465,7 @@ class ChatBot:
                 time = time.time(),
                 group_info= group_info,
                 user_info = user_info,
+                format_info=self.format_info,
         )
         # logger.info (event.get_message())
         message_seg = Seg(
