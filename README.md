@@ -15,10 +15,10 @@
 [https://github.com/MaiM-with-u/MaiBot-Napcat-Adapter](https://github.com/MaiM-with-u/MaiBot-Napcat-Adapter)
 
 ## 新版本迁移须知
-如果你是从旧版本（fastapi连接）更新至最新版本
-请删除或注释掉mmc（麦麦本体）config/config.toml中的
-[platforms] 
-nonebot-qq="http://127.0.0.1:18002/api/message" （这一行请删除）
+如果你是从旧版本（fastapi连接）更新至最新版本  
+请删除或注释掉mmc（麦麦本体）config/config.toml中的  
+[platforms]  
+nonebot-qq="http://127.0.0.1:18002/api/message" （这一行请删除） 
 ## 项目架构
 <img src="./docs/img/readme.jpg" alt="由于图画的太好我就不打文本了" />
 没有todo了（
