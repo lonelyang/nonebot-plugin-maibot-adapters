@@ -1,4 +1,4 @@
-from nonebot import logger, get_plugin_config
+from nonebot import logger
 from nonebot.adapters.onebot.v11 import (
     Bot,
     MessageEvent,
@@ -6,12 +6,12 @@ from nonebot.adapters.onebot.v11 import (
     GroupMessageEvent,
     PokeNotifyEvent,
     NoticeEvent,
-    GroupRecallNoticeEvent,
-    FriendRecallNoticeEvent,
+
 )
 from maim_message import UserInfo, GroupInfo, Seg ,BaseMessageInfo,MessageBase,FormatInfo,TemplateInfo
 from .config import Config
 from .util import local_file_to_base64,download_image_url
+from .router import router
 
 import httpx
 import time
@@ -22,7 +22,7 @@ import base64
 
 
 
-config = get_plugin_config(Config)
+config = Config()
 
 # 定义日志配置
 
@@ -30,7 +30,6 @@ class ChatBot:
     def __init__(self):
         self.bot = None  # bot 实例引用
         self._started = False
-        self.fastapi_url =  config.fastapi_url
         self.client = httpx.AsyncClient(timeout=60)  # 创建异步HTTP客户端
         self.format_info = FormatInfo(
             # 消息内容中包含的Seg的type列表
@@ -516,37 +515,7 @@ class ChatBot:
             return f"[{seg_type}]"
 
     async def message_process(self, message_base: MessageBase) -> None:
-        try:
-            payload = message_base.to_dict()
-            # logger.info(payload)
-            logger.info("消息发送成功")
-
-            response = await self.client.post(
-                self.fastapi_url,
-                json=payload,
-                headers={"Content-Type": "application/json"}
-            )
-            
-            # 检查响应状态
-            if response.status_code != 200:
-                logger.error(f"FastAPI返回错误状态码: {response.status_code}")
-                logger.debug(f"响应内容: {response.text}")
-            else:
-                response_data = response.json()
-                logger.success(f"收到服务端响应: {response_data}")
-                logger.debug(f"响应内容: {response_data}")
-        except httpx.RequestError as e:
-            logger.error(f"请求发送失败，检查你和mmc的连接: {str(e)}")
-            logger.debug(f"请求URL: {self.fastapi_url}")
-            # logger.debug(f"请求数据: {payload}")
-        except httpx.HTTPStatusError as e:
-            logger.error(f"HTTP状态错误: {str(e)}")
-            logger.debug(f"状态码: {e.response.status_code}")
-            logger.debug(f"响应内容: {e.response.text}")
-        except Exception as e:
-            logger.error(f"处理消息时发生未知错误: {str(e)}")
-            logger.debug(f"错误类型: {type(e).__name__}")
-            logger.debug(f"错误详情: {str(e)}")
+        await router.send_message(message_base)
 
 
 # 创建全局ChatBot实例
