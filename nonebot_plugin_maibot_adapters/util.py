@@ -104,25 +104,32 @@ def base64_to_image(base64_str: str, save_dir: str = "data/images") -> str:
     except Exception as e:
         raise ValueError(f"图片处理失败: {str(e)}")
 
-async def download_image_url(url: str) -> str:
-    """直接返回 Base64 字符串"""
+async def download_image_url(url: str):
+    """下载图片并返回 Base64，失败返回 None"""
     try:
-        # 创建 SSL 上下文，禁用 SSLv3，允许 TLS 1.2+
+        # 1. 配置 SSL 上下文（强制 TLS 1.2+，禁用弱加密）
         ssl_context = ssl.create_default_context()
-        ssl_context.options |= ssl.OP_NO_SSLv3  # 禁用 SSLv3
-        ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2  # 强制 TLS 1.2+（Python 3.7+）
+        ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
+        ssl_context.set_ciphers("HIGH:!aNULL:!eNULL:!EXPORT:!DES:!MD5:!PSK:!RC4")
 
+        # 2. 设置超时和浏览器 UA
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+
+        # 3. 发起请求
         async with aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(ssl=ssl_context),
             timeout=aiohttp.ClientTimeout(total=10),
-            connector=aiohttp.TCPConnector(ssl=ssl_context)  # 应用自定义 SSL 配置
         ) as session:
-            async with session.get(url) as resp:
+            async with session.get(url, headers=headers) as resp:
                 resp.raise_for_status()
-                image_bytes = await resp.read()
-                return base64.b64encode(image_bytes).decode("utf-8")
+                return base64.b64encode(await resp.read()).decode("utf-8")
+
     except Exception as e:
         logger.error(f"图片下载失败: {str(e)}")
-        raise
+        return None
+    
     
 def is_group_announcement(event: MessageEvent) -> bool:
     for segment in event.message:

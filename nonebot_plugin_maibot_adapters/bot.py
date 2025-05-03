@@ -302,16 +302,16 @@ class ChatBot:
         for segment in event.message:
             if segment.type == "image":
                 # 获取真实图片数据（根据协议适配器实现）
-                image_file = segment.data.get("file")
+                # image_file = segment.data.get("file")
                 image_url = segment.data.get("url")
                 subtype = segment.data.get("sub_type")
                 try:
-                    #这里是私人emoji和图片
-                    image_data = await asyncio.wait_for(bot.get_image(file=image_file),timeout=2)#2s不响应自动切换一个解决方式
-                    file_path = image_data["file"]
-                    base64_str = local_file_to_base64(file_path)
-                    if base64_str is None: #本地文件读取不到
-                        base64_str = await download_image_url(image_url)
+                    #这里是私人emoji和图片--暂时直接全部使用url下载
+                    # image_data = await asyncio.wait_for(bot.get_image(file=image_file),timeout=2)#2s不响应自动切换一个解决方式
+                    # file_path = image_data["file"]
+                    # base64_str = local_file_to_base64(file_path)
+                    # if base64_str is None: #本地文件读取不到
+                    base64_str = await download_image_url(image_url)
                     subtype = str(subtype) # 确保类型一致性
                     if subtype == "0": #图片
                         image_type = 'image'
