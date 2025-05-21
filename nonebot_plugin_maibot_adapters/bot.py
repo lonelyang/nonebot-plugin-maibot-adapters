@@ -33,7 +33,7 @@ class ChatBot:
         self.client = httpx.AsyncClient(timeout=60)  # 创建异步HTTP客户端
         self.format_info = FormatInfo(
             # 消息内容中包含的Seg的type列表
-            content_format=["text", "image", "emoji", "at", "reply"],
+            content_format=["text", "image", "emoji", "at", "poke", "reply"],
             # 消息发出后，期望最终的消息中包含的消息类型，可以帮助某些plugin判断是否向消息中添加某些消息类型
             accept_format=["text", "image", "emoji", "reply"],
         )
@@ -42,7 +42,6 @@ class ChatBot:
         """确保所有任务已启动"""
         if not self._started:
             self._started = True
-
 
     async def handle_message(self, event: MessageEvent, bot: Bot) -> None:
         """处理收到的消息"""
@@ -56,6 +55,7 @@ class ChatBot:
                     user_id=event.user_id,
                     user_nickname=(await bot.get_stranger_info(user_id=event.user_id, no_cache=True))["nickname"],
                     user_cardname=None,
+                    user_titlename=None,
                     platform=config.platfrom,
                 )
             except Exception as e:
@@ -70,8 +70,8 @@ class ChatBot:
 
         # 处理群聊消息
         else:
-            #白名单处理逻辑
-            if len(config.allow_group_list) != 0 :
+            # 白名单处理逻辑
+            if len(config.allow_group_list) != 0:
                 if event.group_id not in config.allow_group_list:
                     return
 
@@ -79,6 +79,7 @@ class ChatBot:
                 user_id=event.user_id,
                 user_nickname=event.sender.nickname,
                 user_cardname=event.sender.card or None,
+                user_titlename=event.sender.title or None,
                 platform=config.platfrom,
             )
             
@@ -163,6 +164,7 @@ class ChatBot:
             user_id=event.user_id,
             user_nickname=event.sender.nickname,
             user_cardname=event.sender.card or None,
+            user_titlename=event.sender.title or None,
             platform=config.platfrom,
         )
 
@@ -201,17 +203,19 @@ class ChatBot:
             nickname = (await bot.get_login_info())["nickname"]
 
             raw_message = f"[戳了戳]{nickname}"  # 默认类型
-            if info := event.model_extra["raw_info"]:
-                poke_type = info[2].get("txt", "戳了戳")  # 戳戳类型，例如“拍一拍”、“揉一揉”、“捏一捏”
-                custom_poke_message = info[4].get("txt", "")  # 自定义戳戳消息，若不存在会为空字符串
-                raw_message = f"[{poke_type}]{nickname}{custom_poke_message}"
+            print(event.model_extra)
+            info = event.model_extra
+            poke_type = info.get("action", "戳了戳")  # 使用 'action' 字段
+            custom_poke_message = info.get("suffix", "")  # 使用 'suffix' 字段
+            raw_message = f"[{poke_type}]{nickname}{custom_poke_message}"
 
-                raw_message += "（这是一个类似摸摸头的友善行为，而不是恶意行为，请不要作出攻击发言）"
+            raw_message += "（这是一个类似摸摸头的友善行为，而不是恶意行为，请不要作出攻击发言）"
 
             user_info = UserInfo(
                 user_id=event.user_id,
                 user_nickname=(await bot.get_stranger_info(user_id=event.user_id, no_cache=True))["nickname"],
                 user_cardname=None,
+                user_titlename=None,
                 platform=config.platfrom,
             )
 
@@ -269,7 +273,6 @@ class ChatBot:
             if event.group_id not in config.allow_group_list:
                 return
 
-
         # 公共信息处理（移到循环外）
         try:
             if isinstance(event, PrivateMessageEvent):
@@ -277,7 +280,8 @@ class ChatBot:
                     user_id=event.user_id,
                     user_nickname=(await bot.get_stranger_info(user_id=event.user_id))["nickname"],
                     user_cardname=None,
-                    platform= config.platfrom
+                    user_titlename=None,
+                    platform=config.platfrom
                 )
                 group_info = None
             else:
@@ -285,7 +289,8 @@ class ChatBot:
                     user_id=event.user_id,
                     user_nickname=event.sender.nickname,
                     user_cardname=event.sender.card or None,
-                    platform= config.platfrom
+                    user_titlename=event.sender.title or None,
+                    platform=config.platfrom
                 )
                 # 获取群信息添加默认值
 
@@ -302,18 +307,25 @@ class ChatBot:
         for segment in event.message:
             if segment.type == "image":
                 # 获取真实图片数据（根据协议适配器实现）
+                image_file = segment.data.get("file")
                 # image_file = segment.data.get("file")
                 image_url = segment.data.get("url")
                 subtype = segment.data.get("sub_type")
                 try:
-                    #这里是私人emoji和图片--暂时直接全部使用url下载
+                    # 这里是私人emoji和图片
+                    image_data = await asyncio.wait_for(bot.get_image(file=image_file), timeout=2)  # 2s不响应自动切换一个解决方式
+                    file_path = image_data["file"]
+                    base64_str = local_file_to_base64(file_path)
+                    if base64_str is None:  # 本地文件读取不到
+                        base64_str = await download_image_url(image_url)
+                    # 这里是私人emoji和图片--暂时直接全部使用url下载
                     # image_data = await asyncio.wait_for(bot.get_image(file=image_file),timeout=2)#2s不响应自动切换一个解决方式
                     # file_path = image_data["file"]
                     # base64_str = local_file_to_base64(file_path)
                     # if base64_str is None: #本地文件读取不到
                     base64_str = await download_image_url(image_url)
-                    subtype = str(subtype) # 确保类型一致性
-                    if subtype == "0": #图片
+                    subtype = str(subtype)  # 确保类型一致性
+                    if subtype == "0":  # 图片
                         image_type = 'image'
                     else:
                         image_type = 'emoji'
@@ -362,6 +374,7 @@ class ChatBot:
                     user_id=event.user_id,
                     user_nickname=(await bot.get_stranger_info(user_id=event.user_id, no_cache=True))["nickname"],
                     user_cardname=None,
+                    user_titlename=None,
                     platform=config.platfrom,
                 )
             except Exception as e:
@@ -381,6 +394,7 @@ class ChatBot:
                 user_id=event.user_id,
                 user_nickname=event.sender.nickname,
                 user_cardname=event.sender.card or None,
+                user_titlename=event.sender.title or None,
                 platform=config.platfrom,
             )
             
@@ -388,7 +402,7 @@ class ChatBot:
                                    group_name=(await bot.get_group_info(group_id = event.group_id,no_cache=True))["group_name"], 
                                    platform=config.platfrom)
 
-        message_content =  f"回复{event.reply.sender.nickname}的消息({event.reply.message})，说："
+        message_content = f"回复{event.reply.sender.nickname}({event.reply.sender.user_id})的消息({event.reply.message or ''})，说："
         # message_content += f"-{event.reply.sender.nickname}(id{event.reply.user_id}):{event.reply.message}\n回复了以下信息："
         message_content+=event.get_plaintext()
         # logger.info(f"\n\n\n{message_content}\n\n\n")
@@ -419,21 +433,23 @@ class ChatBot:
         if len(config.allow_group_list) != 0 :
             if event.group_id not in config.allow_group_list:
                 return
-
-
         # 获取合并转发消息的详细信息
-        forward_info = await bot.get_forward_msg(message_id=event.message_id)
-        messages = forward_info["messages"]
+        print("massage_id_forward", event.get_message())
+        info = str(event.get_message())
+        forward_id = info.split("id=")[1].split("]")[0]
+        forward_info = await bot.get_forward_msg(id=forward_id)
+        print("forward_info", forward_info)
+        messages = forward_info["message"]
 
         # 构建合并转发消息的文本表示
         processed_messages = []
         
         for node in messages:
             # 提取发送者昵称
-            nickname = node["sender"].get("nickname", "未知用户")
+            nickname = node["data"].get("nickname", "未知用户")
 
             # 递归处理消息内容
-            message_content = await self.process_message_segments(node["message"], layer=0)
+            message_content = await self.process_message_segments(node["data"]["content"], layer=0, bot=bot)
 
             # 拼接为【昵称】+ 内容
             processed_messages.append(f"{nickname}：{message_content}")
@@ -447,7 +463,8 @@ class ChatBot:
             user_id=event.user_id,
             user_nickname=event.sender.nickname,
             user_cardname=event.sender.card if hasattr(event.sender, "card") else None,
-            platform= config.platfrom,
+            user_titlename=event.sender.title if hasattr(event.sender, "title") else None,
+            platform=config.platfrom,
         )
 
         # 构建群聊信息（如果是群聊）
@@ -477,15 +494,15 @@ class ChatBot:
         # 进入标准消息处理流程
         await self.message_process(message_base)
 
-    async def process_message_segments(self, segments: list, layer: int) -> str:
+    async def process_message_segments(self, segments: list, layer: int, bot: Bot) -> str:
         """递归处理消息段"""
         parts = []
         for seg in segments:
-            part = await self.process_segment(seg, layer + 1)
+            part = await self.process_segment(seg, layer + 1, bot)
             parts.append(part)
         return "".join(parts)
 
-    async def process_segment(self, seg: dict, layer: int) -> str:
+    async def process_segment(self, seg: dict, layer: int, bot: Bot) -> str:
         """处理单个消息段"""
         seg_type = seg["type"]
         if layer > 3:
@@ -501,12 +518,14 @@ class ChatBot:
             return f"@{seg['data'].get('qq', '未知用户')}"
         elif seg_type == "forward":
             # 递归处理嵌套的合并转发消息
-            nested_nodes = seg["data"].get("content", [])
+            forward_id = seg["data"].get("id", "")
+            forward_info = await bot.get_forward_msg(id=forward_id)
+            nested_nodes = forward_info["message"]
             nested_messages = []
             nested_messages.append("合并转发消息内容：")
             for node in nested_nodes:
-                nickname = node["sender"].get("nickname", "未知用户")
-                content = await self.process_message_segments(node["message"], layer=layer)
+                nickname = node["data"].get("nickname", "未知用户")
+                content = await self.process_message_segments(node["data"]["content"], layer=layer, bot=bot)
                 # nested_messages.append('-' * layer)
                 nested_messages.append(f"{'--' * layer}【{nickname}】{content}")
             # nested_messages.append(f"{'--' * layer}合并转发第【{layer}】层结束")
