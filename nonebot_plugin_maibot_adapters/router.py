@@ -76,6 +76,7 @@ async def message_handler(message):
         # 初始化消息链和回复ID
         message_chain = Message()
         reply_msg_id = None
+        poke_user_id = None
 
         # 处理seglist类型的复合消息
         if message_segment.get('type') == 'seglist':
@@ -85,29 +86,47 @@ async def message_handler(message):
 
                 if seg_type == 'reply':
                     reply_msg_id = seg_data  # 记录被回复的消息ID
+                if seg_type == 'at':
+                    message_chain += MessageSegment.at(seg_data)
+                if seg_type == 'poke':
+                    poke_user_id = seg_data
                 elif seg_type == 'text':
                     message_chain += MessageSegment.text(seg_data)
                 elif seg_type == 'image':
-                    image_path = base64_to_image(seg_data)
-                    message_chain += MessageSegment.image(file=image_path)
+                    image_path = "base64://" + seg_data
+                    message_chain = MessageTemplate("{}").format(f"[CQ:image,file={image_path},subType=0]")
                 elif seg_type == 'emoji':
                     # 处理表情消息（示例）
                     # message_chain += MessageSegment.face(id=int(seg_data))
-                    image_path = base64_to_image(seg_data)
-                    message_chain += MessageSegment.image(file=image_path)
+                    image_path = "base64://" + seg_data
+                    message_chain = MessageTemplate("{}").format(f"[CQ:image,file={image_path},subType=1]")
         else:
             # 处理单一类型消息
             seg_type = message_segment.get('type')
             seg_data = message_segment.get('data', '')
+            if seg_type == 'at':
+                message_chain += MessageSegment.at(seg_data)
+            if seg_type == 'poke':
+                poke_user_id = seg_data
             if seg_type == 'text':
                 message_chain += MessageSegment.text(seg_data)
             elif seg_type == 'image':
-                image_path = base64_to_image(seg_data)
-                message_chain += MessageSegment.image(file=image_path)
+                image_path = "base64://" + seg_data
+                message_chain = MessageTemplate("{}").format(f"[CQ:image,file={image_path},subType=0]")
+            elif seg_type == 'emoji':
+                image_path = "base64://" + seg_data
+                message_chain = MessageTemplate("{}").format(f"[CQ:image,file={image_path},subType=1]")
 
         # 添加回复引用（如果存在）
         if reply_msg_id:
             message_chain = MessageSegment.reply(reply_msg_id) + message_chain
+
+        # 发送戳一戳（如果存在）
+        if poke_user_id:
+            if group_id:
+                await bot.call_api("group_poke", user_id=poke_user_id, group_id=group_id)
+            else:
+                await bot.call_api("friend_poke", user_id=poke_user_id)
 
         # 发送消息
         if group_id:
