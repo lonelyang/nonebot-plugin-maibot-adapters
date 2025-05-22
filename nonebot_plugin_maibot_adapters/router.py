@@ -76,7 +76,7 @@ async def message_handler(message):
         # 初始化消息链和回复ID
         message_chain = Message()
         reply_msg_id = None
-        poke_user_id = None
+        poke_user_ids = []
 
         # 处理seglist类型的复合消息
         if message_segment.get('type') == 'seglist':
@@ -87,10 +87,10 @@ async def message_handler(message):
                 if seg_type == 'reply':
                     reply_msg_id = seg_data  # 记录被回复的消息ID
                 if seg_type == 'at':
-                    message_chain += MessageSegment.at(seg_data)
+                    message_chain += MessageSegment.at(int(seg_data))
                 if seg_type == 'poke':
-                    poke_user_id = seg_data
-                elif seg_type == 'text':
+                    poke_user_ids.append(seg_data)
+                if seg_type == 'text':
                     message_chain += MessageSegment.text(seg_data)
                 elif seg_type == 'image':
                     image_path = "base64://" + seg_data
@@ -105,9 +105,9 @@ async def message_handler(message):
             seg_type = message_segment.get('type')
             seg_data = message_segment.get('data', '')
             if seg_type == 'at':
-                message_chain += MessageSegment.at(seg_data)
+                message_chain += MessageSegment.at(int(seg_data))
             if seg_type == 'poke':
-                poke_user_id = seg_data
+                poke_user_ids.append(seg_data)
             if seg_type == 'text':
                 message_chain += MessageSegment.text(seg_data)
             elif seg_type == 'image':
@@ -122,11 +122,12 @@ async def message_handler(message):
             message_chain = MessageSegment.reply(reply_msg_id) + message_chain
 
         # 发送戳一戳（如果存在）
-        if poke_user_id:
-            if group_id:
-                await bot.call_api("group_poke", user_id=poke_user_id, group_id=group_id)
-            else:
-                await bot.call_api("friend_poke", user_id=poke_user_id)
+        if poke_user_ids:
+            for user_id in poke_user_ids:
+                if group_id:
+                    await bot.call_api("group_poke", user_id=user_id, group_id=group_id)
+                else:
+                    await bot.call_api("friend_poke", user_id=user_id)
 
         # 发送消息
         if group_id:
